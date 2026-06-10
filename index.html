@@ -173,6 +173,7 @@
       <div class="progressbar"><i id="qProg"></i></div>
       <div class="qtext" id="qText" style="margin-top:14px"></div>
       <div class="choices" id="qChoices"></div>
+      <button class="btn ghost" id="passBtn" type="button" style="width:100%; margin-top:12px; color:var(--muted); border-style:dashed">🤔 わからない（パスして解説を見る・復習に追加）</button>
       <div class="explain" id="qExplain"></div>
       <div class="row" style="margin-top:16px">
         <button class="btn ghost" id="quitBtn">← 中断</button>
@@ -292,12 +293,14 @@ function renderQuestion(){
     box.appendChild(b);
   });
   const ex=$('qExplain'); ex.className='explain'; ex.innerHTML='';
+  $('passBtn').style.display='block'; $('passBtn').disabled=false;
   $('nextBtn').disabled = true;
   $('nextBtn').textContent = (session.idx===session.list.length-1)?'結果へ →':'次へ →';
 }
 
 function pick(btn, isCorrect, q, box){
   [...box.children].forEach(c=>c.disabled=true);
+  $('passBtn').style.display='none';
   session.done++;
   if(isCorrect){ btn.classList.add('correct'); session.score++; }
   else{
@@ -311,6 +314,25 @@ function pick(btn, isCorrect, q, box){
   const ex=$('qExplain');
   ex.classList.add('show');
   ex.innerHTML = `<div class="verdict ${isCorrect?'v-ok':'v-ng'}">${isCorrect?'◯ 正解！':'✗ 不正解'}</div>
+    <div><b>正解：</b>${q.choices[q.answer]}</div>
+    <div style="margin-top:6px">${q.exp}</div>`;
+  $('liveScore').textContent = `正解 ${session.score} / ${session.done}`;
+  $('nextBtn').disabled = false;
+}
+
+function passQuestion(){
+  const q = session.list[session.idx];
+  const box = $('qChoices');
+  [...box.children].forEach(c=>{
+    c.disabled=true;
+    if(c.querySelector('span:last-child').textContent === q.choices[q.answer]) c.classList.add('correct');
+  });
+  $('passBtn').style.display='none';
+  session.done++;
+  recordAnswer(q.id, false);   // パスは「不正解扱い」で復習リストに追加
+  const ex=$('qExplain');
+  ex.classList.add('show');
+  ex.innerHTML = `<div class="verdict" style="color:var(--accent2)">🤔 パスしました（復習対象に追加）</div>
     <div><b>正解：</b>${q.choices[q.answer]}</div>
     <div style="margin-top:6px">${q.exp}</div>`;
   $('liveScore').textContent = `正解 ${session.score} / ${session.done}`;
@@ -359,6 +381,7 @@ $('startCat').onclick = ()=>{
   startSession(shuffle(QUESTIONS.filter(q=>q.cat===c)), 'category');
 };
 $('nextBtn').onclick = nextQuestion;
+$('passBtn').onclick = passQuestion;
 $('quitBtn').onclick = ()=>{ if(confirm('中断してホームに戻りますか？（進捗は保存済み）')){ renderHome(); show('home'); } };
 $('rHome').onclick = ()=>{ renderHome(); show('home'); };
 $('rReview').onclick = ()=>{
